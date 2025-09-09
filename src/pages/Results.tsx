@@ -15,10 +15,11 @@ import {
   Utensils, 
   Brain,
   ArrowLeft,
-  Info
+  Info,
+  Database
 } from 'lucide-react';
 import { HealthData } from './DiabetesAssessment';
-import { calculateDiabetesRisk } from '@/utils/diabetesPrediction';
+import { predictDiabetesRisk } from '@/utils/modelPrediction';
 
 interface RiskResult {
   riskLevel: 'Low' | 'Medium' | 'High';
@@ -29,6 +30,7 @@ interface RiskResult {
     description: string;
   }[];
   recommendations: string[];
+  modelUsed: 'trained' | 'rule-based';
 }
 
 const Results = () => {
@@ -42,8 +44,8 @@ const Results = () => {
       const data = JSON.parse(storedData) as HealthData;
       setHealthData(data);
       
-      // Calculate risk using our prediction algorithm
-      const result = calculateDiabetesRisk(data);
+      // Calculate risk using our prediction algorithm (ML model if available, rule-based fallback)
+      const result = predictDiabetesRisk(data);
       setRiskResult(result);
     } else {
       navigate('/assessment');
@@ -117,6 +119,13 @@ const Results = () => {
               <div className="flex items-center gap-2">
                 {getRiskIcon(riskResult.riskLevel)}
                 <span>Risk Assessment</span>
+                <Badge variant="outline" className="ml-2 text-xs">
+                  {riskResult.modelUsed === 'trained' ? (
+                    <><Database className="h-3 w-3 mr-1" />ML Model</>
+                  ) : (
+                    <><Brain className="h-3 w-3 mr-1" />Rule-Based</>
+                  )}
+                </Badge>
               </div>
               <Badge 
                 variant={getRiskColor(riskResult.riskLevel) as any}
