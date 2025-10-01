@@ -10,6 +10,10 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+// Initialize Gemini AI client
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'AIzaSyAVrvalgwoe4k4XzT8ptF8rHouA5ico-Hc');
+
 // Dataset and model storage
 let dataset = [];
 let trainedModel = null;
@@ -277,6 +281,26 @@ app.post('/api/predict', (req, res) => {
   } catch (error) {
     console.error('Prediction error:', error);
     res.status(500).json({ error: 'Prediction failed' });
+  }
+});
+
+// Chatbot endpoint using Gemini AI
+app.post('/api/chatbot', async (req, res) => {
+  try {
+    const { message } = req.body;
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.0-pro' });
+    const result = await model.generateContent(message);
+    const response = await result.response;
+    const text = response.text();
+
+    res.json({ reply: text });
+  } catch (error) {
+    console.error('Chatbot error:', error);
+    res.status(500).json({ error: 'Error communicating with AI' });
   }
 });
 

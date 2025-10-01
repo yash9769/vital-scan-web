@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { HealthData } from './DiabetesAssessment';
 import { predictDiabetesRisk } from '@/utils/modelPrediction';
+import Chatbot from '@/components/Chatbot';
 
 interface RiskResult {
   riskLevel: 'Low' | 'Medium' | 'High';

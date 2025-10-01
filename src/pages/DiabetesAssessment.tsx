@@ -6,11 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Heart, Activity, User, Utensils, Cigarette, Wine, Brain, Stethoscope } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Heart, Activity, User, Utensils, Cigarette, Wine, Brain, Stethoscope, ArrowLeft } from 'lucide-react';
 
 export interface HealthData {
   age: number;
   gender: 'Male' | 'Female';
+  height: number;
+  weight: number;
   bmi: number;
   familyHistory: 'Yes' | 'No';
   physicalActivity: 'Low' | 'Moderate' | 'High';
@@ -25,6 +28,18 @@ const DiabetesAssessment = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState<Partial<HealthData>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [height, setHeight] = useState<number | ''>('');
+  const [weight, setWeight] = useState<number | ''>('');
+  const [calculatedBmi, setCalculatedBmi] = useState<number | null>(null);
+
+  const calculateBMI = (h: number, w: number) => {
+    if (h > 0 && w > 0) {
+      const bmi = w / ((h / 100) ** 2);
+      setCalculatedBmi(Math.round(bmi * 10) / 10);
+    } else {
+      setCalculatedBmi(null);
+    }
+  };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -37,8 +52,11 @@ const DiabetesAssessment = () => {
       newErrors.gender = 'Please select your gender';
     }
     
-    if (!formData.bmi || formData.bmi < 10 || formData.bmi > 50) {
-      newErrors.bmi = 'Please enter a valid BMI between 10-50';
+    if (!height || height < 50 || height > 250) {
+      newErrors.height = 'Please enter a valid height between 50-250 cm';
+    }
+    if (!weight || weight < 20 || weight > 300) {
+      newErrors.weight = 'Please enter a valid weight between 20-300 kg';
     }
     
     const requiredFields = ['familyHistory', 'physicalActivity', 'dietType', 'smokingStatus', 'alcoholIntake', 'stressLevel', 'hypertension'];
@@ -55,7 +73,13 @@ const DiabetesAssessment = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      localStorage.setItem('diabetesAssessmentData', JSON.stringify(formData));
+      const bmi = calculatedBmi;
+      if (!bmi) {
+        setErrors({ bmi: 'Unable to calculate BMI' });
+        return;
+      }
+      const data = { ...formData, height, weight, bmi };
+      localStorage.setItem('diabetesAssessmentData', JSON.stringify(data));
       navigate('/results');
     }
   };
@@ -70,6 +94,14 @@ const DiabetesAssessment = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4">
       <div className="max-w-4xl mx-auto">
+        <Button
+          variant="ghost"
+          onClick={() => navigate('/')}
+          className="mb-4"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Home
+        </Button>
         <div className="text-center mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             Diabetes Risk Assessment
@@ -133,22 +165,56 @@ const DiabetesAssessment = () => {
                   </div>
 
                   <div>
-                    <Label htmlFor="bmi">BMI (Body Mass Index)</Label>
+                    <Label htmlFor="height">Height (cm)</Label>
                     <Input
-                      id="bmi"
+                      id="height"
                       type="number"
-                      step="0.1"
-                      min="10"
-                      max="50"
-                      value={formData.bmi || ''}
-                      onChange={(e) => updateFormData('bmi', parseFloat(e.target.value))}
-                      className={errors.bmi ? 'border-destructive' : ''}
+                      min="50"
+                      max="250"
+                      value={height}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        setHeight(val);
+                        if (weight) calculateBMI(val, weight);
+                        if (errors.height) setErrors(prev => ({ ...prev, height: '' }));
+                      }}
+                      className={errors.height ? 'border-destructive' : ''}
                     />
-                    {errors.bmi && <p className="text-sm text-destructive mt-1">{errors.bmi}</p>}
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Calculate: Weight (kg) ÷ Height² (m²)
-                    </p>
+                    {errors.height && <p className="text-sm text-destructive mt-1">{errors.height}</p>}
                   </div>
+
+                  <div>
+                    <Label htmlFor="weight">Weight (kg)</Label>
+                    <Input
+                      id="weight"
+                      type="number"
+                      min="20"
+                      max="300"
+                      value={weight}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        setWeight(val);
+                        if (height) calculateBMI(height, val);
+                        if (errors.weight) setErrors(prev => ({ ...prev, weight: '' }));
+                      }}
+                      className={errors.weight ? 'border-destructive' : ''}
+                    />
+                    {errors.weight && <p className="text-sm text-destructive mt-1">{errors.weight}</p>}
+                  </div>
+
+                  {calculatedBmi && (
+                    <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
+                      <Label className="text-sm font-medium text-primary">Your BMI</Label>
+                      <div className="text-3xl font-bold text-primary mt-1">
+                        {calculatedBmi}
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {calculatedBmi < 18.5 ? 'Underweight' :
+                         calculatedBmi < 25 ? 'Normal weight' :
+                         calculatedBmi < 30 ? 'Overweight' : 'Obese'}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Medical History */}
